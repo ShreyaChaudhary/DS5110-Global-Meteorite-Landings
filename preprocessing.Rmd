@@ -1,0 +1,140 @@
+```{r import-data}
+# Load required libraries
+library(ggplot2)
+library(maps)
+
+# Read dataset
+meteorites <- read.csv("https://data.nasa.gov/docs/legacy/meteorite_landings/Meteorite_Landings.csv", 
+                       stringsAsFactors = FALSE)
+
+# Display first 10 rows
+head(meteorites, 10)
+```
+
+## Variables of Interest
+
+For this analysis, I am interested in exploring **how different regions discover different types of meteorites over time**. The key variables used are:
+
+- **`name`**: Name identifier for the meteorite
+- **`reclat`**: Latitude coordinate (decimal degrees) where the meteorite was found
+- **`reclong`**: Longitude coordinate (decimal degrees) where the meteorite was found
+- **`year`**: Year the meteorite was discovered or observed falling
+- **`mass..g.`**: Mass of the meteorite in grams
+- **`fall`**: Classification indicating whether the meteorite was observed falling ("Fell") or discovered later ("Found")
+- **`recclass`**: Detailed classification of the meteorite (e.g., H5, Iron IVB, Pallasite, Achondrite) - **this is the key variable for determining meteorite type**
+
+## Data Processing Steps
+
+The following processing steps were performed to prepare the data for visualization:
+
+```{r process-data}
+# 1. Remove rows with missing coordinates, year, or classification
+meteorites_clean <- meteorites[!is.na(meteorites$reclat) & 
+                                !is.na(meteorites$reclong) & 
+                                !is.na(meteorites$year) &
+                                !is.na(meteorites$recclass), ]
+
+# 2. Remove outliers (coordinates outside valid ranges)
+meteorites_clean <- meteorites_clean[meteorites_clean$reclat >= -90 & 
+                                     meteorites_clean$reclat <= 90 & 
+                                     meteorites_clean$reclong >= -180 & 
+                                     meteorites_clean$reclong <= 180, ]
+
+# 3. Focus on discoveries from 1800 onwards for clearer temporal patterns
+meteorites_clean <- meteorites_clean[meteorites_clean$year >= 1800 & 
+                                     meteorites_clean$year <= 2013, ]
+
+# 4. Create time period categories for comparison
+meteorites_clean$time_period <- ifelse(meteorites_clean$year < 1950, 
+                                       "1800-1949: Early Discoveries",
+                                ifelse(meteorites_clean$year >= 1950 & meteorites_clean$year < 1980,
+                                       "1950-1979: Mid-Century",
+                                ifelse(meteorites_clean$year >= 1980 & meteorites_clean$year < 2000,
+                                       "1980-1999: Modern Era",
+                                       "2000-2013: Recent Discoveries")))
+
+# 5. Convert to factor with ordered levels for proper plotting
+meteorites_clean$time_period <- factor(meteorites_clean$time_period, 
+                                       levels = c("1800-1949: Early Discoveries",
+                                                  "1950-1979: Mid-Century", 
+                                                  "1980-1999: Modern Era",
+                                                  "2000-2013: Recent Discoveries"))
+
+# 6. Create simplified meteorite type categories from detailed recclass
+# Classify meteorites into major groups based on their composition
+meteorites_clean$meteorite_type <- ifelse(grepl("^Iron", meteorites_clean$recclass) | 
+                                          grepl("^Ir", meteorites_clean$recclass), 
+                                          "Iron",
+                                   ifelse(grepl("^Stone", meteorites_clean$recclass) |
+                                          grepl("^H[0-9]", meteorites_clean$recclass) |
+                                          grepl("^L[0-9]", meteorites_clean$recclass) |
+                                          grepl("^LL[0-9]", meteorites_clean$recclass) |
+                                          grepl("^E[0-9]", meteorites_clean$recclass) |
+                                          grepl("Chondrite", meteorites_clean$recclass) |
+                                          grepl("Achondrite", meteorites_clean$recclass) |
+                                          grepl("^C[0-9]", meteorites_clean$recclass),
+                                          "Stone",
+                                   ifelse(grepl("Stony-iron", meteorites_clean$recclass) |
+                                          grepl("Pallasite", meteorites_clean$recclass) |
+                                          grepl("Mesosiderite", meteorites_clean$recclass),
+                                          "Stony-Iron",
+                                          "Other")))
+
+meteorites_clean$meteorite_type <- factor(meteorites_clean$meteorite_type,
+                                          levels = c("Stone", "Iron", "Stony-Iron", "Other"))
+
+# 7. Create region categories for geographic analysis
+meteorites_clean$region <- ifelse(meteorites_clean$reclat > -70 & meteorites_clean$reclat < -60,
+                                  "Antarctica",
+                           ifelse(meteorites_clean$reclat >= 15 & meteorites_clean$reclat <= 75 & 
+                                  meteorites_clean$reclong >= -25 & meteorites_clean$reclong <= 60,
+                                  "Europe/N. Africa",
+                           ifelse(meteorites_clean$reclat >= 25 & meteorites_clean$reclat <= 50 & 
+                                  meteorites_clean$reclong >= -130 & meteorites_clean$reclong <= -60,
+                                  "North America",
+                           ifelse(meteorites_clean$reclat >= 15 & meteorites_clean$reclat <= 35 & 
+                                  meteorites_clean$reclong >= -20 & meteorites_clean$reclong <= 55,
+                                  "Sahara Desert",
+                           ifelse(meteorites_clean$reclat >= -40 & meteorites_clean$reclat <= -10 & 
+                                  meteorites_clean$reclong >= 110 & meteorites_clean$reclong <= 155,
+                                  "Australia",
+                                  "Other Regions")))))
+
+# 8. Log transform mass for better visualization of wide range
+meteorites_clean$log_mass <- log10(meteorites_clean$mass..g. + 1)
+```
+
+### Processing Summary
+
+After data processing, the cleaned dataset contains `r nrow(meteorites_clean)` meteorite records spanning from `r min(meteorites_clean$year)` to `r max(meteorites_clean$year)`.
+
+```{r summary-output, echo=FALSE, comment=''}
+# Display simple summaries
+cat("Discoveries by Time Period:\n")
+print(table(meteorites_clean$time_period))
+
+cat("\n\nDiscoveries by Meteorite Type:\n")
+print(table(meteorites_clean$meteorite_type))
+
+cat("\n\nDiscoveries by Region:\n")
+print(table(meteorites_clean$region))
+```
+
+### Summary of Processing Steps:
+
+1. **Removed missing values**: Filtered out records with missing coordinates, years, or classification data to ensure complete data for analysis
+
+2. **Removed invalid coordinates**: Excluded entries with latitude/longitude outside valid geographic ranges (-90 to 90 for latitude, -180 to 180 for longitude)
+
+3. **Focused time period**: Limited analysis to 1800-2013 to focus on the modern era of meteorite science with better documentation
+
+4. **Created time period categories**: Grouped years into four meaningful periods (pre-1950, 1950-1979, 1980-1999, 2000-2013) to enable temporal comparison
+
+5. **Created meteorite type categories**: Simplified the detailed `recclass` variable into three major groups:
+   - **Stone meteorites**: Including all chondrites (H, L, LL, E, C types) and achondrites - the most common type
+   - **Iron meteorites**: Metallic meteorites composed primarily of iron-nickel alloys - heavy and distinctive
+   - **Stony-Iron meteorites**: Rare mixed composition meteorites (pallasites, mesosiderites)
+
+6. **Created geographic regions**: Classified meteorites into major discovery regions (Antarctica, Europe/N. Africa, North America, Sahara Desert, Australia) based on coordinate ranges
+
+7. **Log-transformed mass**: Applied log transformation to meteorite mass values to better visualize the wide range of sizes (from less than 1 gram to over 60,000 kg)
