@@ -36,7 +36,8 @@ Using the NASA Meteorite Landings dataset, which contains over 45,000 records, w
 To analyze historical trends, the data is divided into:  
 - **1800–1949:** Early Period  
 - **1950–1979:** Mid-Century  
-- **1980–2013:** Modern Era  
+- **1980–1999:** Modern Era
+- **2000–2013:** Recent Period  
 
 ---
 
