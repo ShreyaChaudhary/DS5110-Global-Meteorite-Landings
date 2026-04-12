@@ -1,0 +1,86 @@
+```{r}
+# ============================================================
+# Graph 3: Stacked Bar Chart of Meteorite Composition by Era
+# "What we're finding has shifted too"
+# ============================================================
+
+library(ggplot2)
+library(dplyr)
+library(tidyr)
+library(scales)
+
+# Count meteorites by time period and type
+composition_data <- meteorites_clean %>%
+  group_by(time_period, meteorite_type) %>%
+  summarise(count = n(), .groups = "drop") %>%
+  group_by(time_period) %>%
+  mutate(
+    total = sum(count),
+    proportion = count / total * 100
+  ) %>%
+  ungroup()
+
+# Define colors matching your original palette
+type_colors <- c(
+  "Stone"      = "#2A9D8F",
+  "Iron"       = "#E63946",
+  "Stony-Iron" = "#F4A261",
+  "Other"      = "#999999"
+)
+
+# --- Build the Plot ---
+
+ggplot(composition_data, 
+       aes(x = time_period, y = proportion, fill = meteorite_type)) +
+  geom_bar(stat = "identity", width = 0.7) +
+  # Percentage labels inside each segment (hide if too small)
+  geom_text(
+    aes(label = ifelse(proportion >= 4, 
+                        paste0(round(proportion, 1), "%"), 
+                        "")),
+    position = position_stack(vjust = 0.5),
+    color = "white",
+    fontface = "bold",
+    size = 3.5
+  ) +
+  # Count annotations below each bar
+  geom_text(
+    data = composition_data %>%
+      group_by(time_period) %>%
+      summarise(total = first(total), .groups = "drop"),
+    aes(x = time_period, y = -3, 
+        label = paste0("n = ", format(total, big.mark = ",")),
+        fill = NULL),
+    size = 3,
+    color = "gray50",
+    inherit.aes = FALSE
+  ) +
+  scale_fill_manual(
+    name = "Meteorite Type",
+    values = type_colors
+  ) +
+  scale_y_continuous(
+    labels = function(x) paste0(x, "%"),
+    expand = expansion(mult = c(0.05, 0.02))
+  ) +
+  labs(
+    title = "What We're Finding Has Shifted Too",
+    subtitle = "Proportion of meteorite types discovered in each era",
+    x = NULL,
+    y = "Proportion of discoveries",
+    caption = "Data Source: NASA Open Data Portal / The Meteoritical Society (data.nasa.gov)"
+  ) +
+  theme_minimal(base_size = 12) +
+  theme(
+    plot.title    = element_text(face = "bold", size = 16, hjust = 0),
+    plot.subtitle = element_text(size = 11, color = "gray40", hjust = 0),
+    plot.caption  = element_text(size = 8, color = "gray50", hjust = 0),
+    axis.text.x   = element_text(size = 9, lineheight = 1.1),
+    panel.grid.major.x = element_blank(),
+    panel.grid.minor   = element_blank(),
+    legend.position = "bottom",
+    legend.title    = element_text(face = "bold", size = 10),
+    legend.text     = element_text(size = 9)
+  ) +
+  guides(fill = guide_legend(override.aes = list(size = 5)))
+```
