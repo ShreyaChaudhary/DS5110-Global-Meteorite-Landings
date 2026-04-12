@@ -1,0 +1,64 @@
+```{r graph2-faceted-maps, fig.width=10, fig.height=14}
+# ── Graph 2: Faceted World Maps by Time Period ──────────────────────────────
+
+library(maps)
+
+# Collapse into 4 broader periods for cleaner faceting
+meteorites_clean$map_period <- ifelse(meteorites_clean$year < 1950,
+                                      "1800–1949: Early Discoveries",
+                               ifelse(meteorites_clean$year < 1980,
+                                      "1950–1979: Mid-Century",
+                               ifelse(meteorites_clean$year < 2000,
+                                      "1980–1999: Late 20th Century",
+                                      "2000–2013: Modern Era")))
+
+meteorites_clean$map_period <- factor(
+  meteorites_clean$map_period,
+  levels = c(
+    "1800–1949: Early Discoveries",
+    "1950–1979: Mid-Century",
+    "1980–1999: Late 20th Century",
+    "2000–2013: Modern Era"
+  )
+)
+
+# Period colours
+period_colors <- c(
+  "1800–1949: Early Discoveries" = "#F4A261",
+  "1950–1979: Mid-Century"       = "#2A9D8F",
+  "1980–1999: Late 20th Century" = "#457B9D",
+  "2000–2013: Modern Era"        = "#1D3557"
+)
+
+# World basemap
+world_map <- map_data("world")
+
+ggplot() +
+  # Base map
+  geom_polygon(data = world_map,
+               aes(x = long, y = lat, group = group),
+               fill = "#d9d9d9", color = "white", linewidth = 0.15) +
+  # Meteorite points
+  geom_point(data = meteorites_clean,
+             aes(x = reclong, y = reclat, color = map_period),
+             size = 0.6, alpha = 0.6) +
+  scale_color_manual(values = period_colors) +
+  facet_wrap(~ map_period, ncol = 2) +
+  coord_fixed(1.3, xlim = c(-180, 180), ylim = c(-90, 90)) +
+  labs(
+    title = "Where We Looked Changed Everything",
+    subtitle = "Geographic distribution of meteorite discoveries by time period",
+    x = NULL, y = NULL,
+    caption = "Source: NASA Meteoritical Society Dataset"
+  ) +
+  theme_minimal(base_size = 12) +
+  theme(
+    plot.title      = element_text(face = "bold", size = 16, color = "#1d1d1d"),
+    plot.subtitle   = element_text(color = "#555555", margin = margin(b = 10)),
+    legend.position = "none",
+    strip.text      = element_text(face = "bold", size = 11),
+    axis.text       = element_blank(),
+    panel.grid      = element_blank(),
+    panel.spacing   = unit(1, "lines")
+  )
+```
