@@ -1,0 +1,52 @@
+```{r}
+# ============================================================
+# Graph 5: Scatter Plot with Regression (Year vs Log Mass)
+# "Quantifying the Trend"
+# ============================================================
+
+library(ggplot2)
+library(dplyr)
+library(scales)
+
+# Prepare data: filter for valid years and mass
+trend_data <- meteorites_clean %>%
+  filter(!is.na(year) & year >= 1800 & year <= 2013) %>%
+  filter(!is.na(mass..g.) & mass..g. > 0) %>%
+  # Filter to main types to keep the plot clean
+  filter(meteorite_type %in% c("Stone", "Iron", "Stony-Iron"))
+
+# Build the plot
+ggplot(trend_data, aes(x = year, y = mass..g., color = meteorite_type)) +
+  # Use high transparency (alpha) because of the sheer number of points
+  geom_point(alpha = 0.2, size = 0.8) +
+  # Add linear regression lines for each type
+  geom_smooth(method = "lm", se = TRUE, linewidth = 1.2) +
+  # Log scale for Y axis to handle mass variance
+  scale_y_log10(
+    labels = function(x) {
+      ifelse(x >= 1e6, paste0(x/1e6, " t"),
+             ifelse(x >= 1000, paste0(x/1000, " kg"), paste0(x, " g")))
+    },
+    breaks = c(1, 100, 10000, 1000000)
+  ) +
+  # Use the palette from Graph 3 for consistency
+  scale_color_manual(
+    values = c("Stone" = "#2A9D8F", "Iron" = "#E63946", "Stony-Iron" = "#F4A261")
+  ) +
+  labs(
+    title = "Quantifying the Downward Trend in Mass",
+    subtitle = "Year of discovery vs. Mass (log scale). Lines represent linear regression by type.",
+    x = "Year of Discovery",
+    y = "Mass (log scale)",
+    color = "Meteorite Type",
+    caption = "Data Source: NASA Open Data Portal\nNote: The downward slope indicates increased sensitivity to smaller specimens over time."
+  ) +
+  theme_minimal(base_size = 12) +
+  theme(
+    plot.title = element_text(face = "bold", size = 16),
+    panel.grid.minor = element_blank(),
+    legend.position = "top"
+  )
+
+
+```
