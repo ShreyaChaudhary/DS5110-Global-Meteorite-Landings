@@ -1,0 +1,47 @@
+```{r main-visualization, fig.width=12, fig.height=10}
+# Get world map data
+world_map <- map_data("world")
+
+# Define colors for meteorite types
+type_colors <- c("Stone"      = "#2A9D8F",
+                 "Iron"       = "#E63946",
+                 "Stony-Iron" = "#F4A261",
+                 "Other"      = "#999999")
+
+# Create faceted world map showing type patterns over time
+ggplot() +
+  # Base world map
+  geom_polygon(data = world_map,
+               aes(x = long, y = lat, group = group),
+               fill = "gray95", color = "gray70", size = 0.2) +
+  # Meteorite landing points colored by type (fixed size, no mass)
+  geom_point(data = meteorites_clean,
+             aes(x = reclong, y = reclat, color = meteorite_type),
+             size = 0.8, alpha = 0.6) +
+  # Facet by time period
+  facet_wrap(~ time_period, ncol = 2) +
+  # Color scale for meteorite types
+  scale_color_manual(
+    name = "Meteorite Type",
+    values = type_colors
+  ) +
+  labs(
+    title = "Different Regions Discover Different Types of Meteorites Over Time",
+    x = "Longitude",
+    y = "Latitude",
+    caption = "Data Source: NASA Open Data Portal / The Meteoritical Society (data.nasa.gov)"
+  ) +
+  theme_minimal(base_size = 11) +
+  theme(
+    plot.title        = element_text(face = "bold", size = 14, hjust = 0),
+    strip.text        = element_text(face = "bold", size = 10),
+    strip.background  = element_rect(fill = "gray90", color = NA),
+    panel.grid.minor  = element_blank(),
+    legend.position   = "bottom",
+    plot.caption      = element_text(size = 8, color = "gray50", hjust = 0)
+  ) +
+  guides(
+    color = guide_legend(override.aes = list(size = 4, alpha = 1))
+  ) +
+  coord_fixed(ratio = 1.3)
+```
