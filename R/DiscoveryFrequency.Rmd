@@ -1,0 +1,32 @@
+```{r graph1-discoveries-over-time, fig.width=10, fig.height=6}
+# ── Graph 1: Meteorite Discoveries Per Decade ──────────────────────────────
+
+# Create decade variable
+meteorites_clean$decade <- floor(meteorites_clean$year / 10) * 10
+
+# Count discoveries per decade
+decade_counts <- as.data.frame(table(meteorites_clean$decade))
+colnames(decade_counts) <- c("decade", "count")
+decade_counts$decade <- as.numeric(as.character(decade_counts$decade))
+
+ggplot(decade_counts, aes(x = decade, y = count)) +
+  geom_bar(stat = "identity", fill = "#E63946", color = "white", width = 8) +
+  scale_x_continuous(breaks = seq(1800, 2010, by = 20),
+                     labels = paste0(seq(1800, 2010, by = 20), "s")) +
+  scale_y_continuous(labels = scales::comma) +
+  labs(
+    title = "The Explosion of Meteorite Discovery (1800–2013)",
+    subtitle = "Number of meteorites discovered per decade",
+    x = "Decade",
+    y = "Number of Discoveries",
+    caption = "Source: NASA Meteoritical Society Dataset"
+  ) +
+  theme_minimal(base_size = 13) +
+  theme(
+    plot.title    = element_text(face = "bold", size = 16, color = "#1d1d1d"),
+    plot.subtitle = element_text(color = "#555555", margin = margin(b = 10)),
+    axis.text.x   = element_text(angle = 45, hjust = 1),
+    panel.grid.major.x = element_blank(),
+    panel.grid.minor   = element_blank()
+  )
+```
