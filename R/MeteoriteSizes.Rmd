@@ -1,7 +1,7 @@
 
 ```{r}
 
-# Graph 4: Violin / Box Plot of Mass by Era (Log-Scaled)
+# Violin / Box Plot of Mass by Era (Log-Scaled)
 # "We're finding smaller meteorites now"
 
 
@@ -122,4 +122,47 @@ ggplot(mass_data, aes(x = time_period, y = mass..g., fill = time_period)) +
              color = "gray70", linewidth = 0.4) +
   annotate("text", x = 0.6, y = 1000, label = "1 kg",
            size = 2.8, color = "gray50", hjust = 0, vjust = -0.5)
+```
+
+```{r}
+
+# Kruskal-Wallis Test: Does median meteorite mass differ by era?
+
+library(dplyr)
+
+# Filter out missing/zero mass
+mass_data <- meteorites_clean %>%
+  filter(!is.na(mass..g.) & mass..g. > 0)
+
+# Running the Kruskal-Wallis test
+kw_result <- kruskal.test(mass..g. ~ time_period, data = mass_data)
+print(kw_result)
+
+# If significant, run pairwise Wilcoxon tests
+# Bonferroni correction controls for multiple comparisons
+if (kw_result$p.value < 0.05) {
+  cat("Kruskal-Wallis is significant — running pairwise comparisons:")
+  
+  pairwise_result <- pairwise.wilcox.test(
+    mass_data$mass..g.,
+    mass_data$time_period,
+    p.adjust.method = "bonferroni"
+  )
+  print(pairwise_result)
+} else {
+  cat("Kruskal-Wallis is not significant — no pairwise tests needed.")
+}
+
+# Summary statistics 
+cat("Median mass (grams) by era:\n")
+mass_data %>%
+  group_by(time_period) %>%
+  summarise(
+    n      = n(),
+    median = median(mass..g.),
+    IQR    = IQR(mass..g.),
+    .groups = "drop"
+  ) %>%
+  print()
+
 ```
